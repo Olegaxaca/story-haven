@@ -18,17 +18,17 @@ export const ContinueReading = ({ items }: ContinueReadingProps) => {
   if (items.length === 0) return null;
 
   return (
-    <section className="py-4 px-4">
-      <h2 className="text-lg font-semibold mb-3">Продолжить чтение</h2>
+    <section className="py-3 px-3">
+      <h2 className="text-base font-semibold mb-2">Продолжить чтение</h2>
       
-      <div className="space-y-3">
+      <div className="space-y-2">
         {items.map((item) => (
           <div
             key={item.id}
-            className="flex gap-3 p-3 bg-card rounded-xl border border-border/50 hover:bg-card-hover transition-colors cursor-pointer group"
+            className="flex gap-2.5 p-2.5 bg-card rounded-xl border border-border/50 hover:bg-card-hover transition-colors cursor-pointer group"
           >
             {/* Cover */}
-            <div className="w-16 h-20 rounded-lg overflow-hidden shrink-0">
+            <div className="w-12 h-16 rounded-lg overflow-hidden shrink-0">
               <img
                 src={item.cover}
                 alt={item.title}

@@ -22,7 +22,7 @@ interface CategoryTabsProps {
 
 export const CategoryTabs = ({ activeCategory, onCategoryChange }: CategoryTabsProps) => {
   return (
-    <div className="flex gap-2 overflow-x-auto hide-scrollbar px-4 py-3">
+    <div className="flex gap-1.5 overflow-x-auto hide-scrollbar px-3 py-2">
       {categories.map((category) => (
         <button
           key={category.id}
