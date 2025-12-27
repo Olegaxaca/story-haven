@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { SearchHeader } from "@/components/SearchHeader";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ContentCard } from "@/components/ContentCard";
 import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
@@ -149,8 +148,6 @@ const Catalog = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <SearchHeader />
-      
       {/* Page Title & Filters */}
       <div className="px-3 pt-2 pb-3">
         <div className="flex items-center justify-between mb-3">

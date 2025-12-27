@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SearchHeader } from "@/components/SearchHeader";
+
 import { CategoryTabs } from "@/components/CategoryTabs";
 import { FeaturedHero } from "@/components/FeaturedHero";
 import { ContentSection } from "@/components/ContentSection";
@@ -75,9 +75,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <SearchHeader />
-
       {/* Featured Hero */}
       <FeaturedHero {...featuredContent} />
 

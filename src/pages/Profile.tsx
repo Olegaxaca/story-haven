@@ -1,0 +1,406 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from "@supabase/supabase-js";
+import { BottomNavigation } from "@/components/BottomNavigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  User as UserIcon, 
+  Mail, 
+  Lock, 
+  LogOut, 
+  BookOpen, 
+  Heart, 
+  Settings,
+  ChevronRight,
+  UserCircle,
+  Link as LinkIcon
+} from "lucide-react";
+
+const Profile = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isGuest, setIsGuest] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsGuest(session?.user?.is_anonymous ?? false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsGuest(session?.user?.is_anonymous ?? false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка входа",
+        description: error.message === "Invalid login credentials" 
+          ? "Неверный email или пароль" 
+          : error.message,
+      });
+    } else {
+      toast({
+        title: "Успешный вход",
+        description: "Добро пожаловать!",
+      });
+      setEmail("");
+      setPassword("");
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+
+    const { error } = await supabase.auth.signInAnonymously();
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось войти как гость",
+      });
+    } else {
+      toast({
+        title: "Гостевой вход",
+        description: "Вы вошли как гость. Позже вы сможете привязать аккаунт.",
+      });
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleLinkAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const { error } = await supabase.auth.updateUser({
+      email,
+      password,
+    });
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка привязки",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Аккаунт привязан",
+        description: "Ваш гостевой аккаунт успешно привязан!",
+      });
+      setEmail("");
+      setPassword("");
+      setIsGuest(false);
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось выйти из аккаунта",
+      });
+    } else {
+      toast({
+        title: "Выход выполнен",
+        description: "До скорой встречи!",
+      });
+    }
+  };
+
+  const profileMenuItems = [
+    { icon: BookOpen, label: "Моя библиотека", count: 24 },
+    { icon: Heart, label: "Избранное", count: 12 },
+    { icon: Settings, label: "Настройки" },
+  ];
+
+  // Logged in view
+  if (user && !isGuest) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <header className="sticky top-0 z-40 glass-effect border-b border-border/50">
+          <div className="flex items-center justify-between px-4 py-3">
+            <h1 className="font-semibold text-lg">Профиль</h1>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut size={20} />
+            </Button>
+          </div>
+        </header>
+
+        <div className="p-4 space-y-6">
+          {/* User Info */}
+          <div className="flex items-center gap-4 p-4 bg-card rounded-2xl">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+              <UserCircle size={40} className="text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-lg">{user.email}</h2>
+              <p className="text-sm text-muted-foreground">Читатель</p>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-card rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-primary">24</p>
+              <p className="text-xs text-muted-foreground">Прочитано</p>
+            </div>
+            <div className="bg-card rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-primary">156</p>
+              <p className="text-xs text-muted-foreground">Глав</p>
+            </div>
+            <div className="bg-card rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-primary">42</p>
+              <p className="text-xs text-muted-foreground">Часов</p>
+            </div>
+          </div>
+
+          {/* Menu */}
+          <div className="bg-card rounded-2xl overflow-hidden">
+            {profileMenuItems.map((item, index) => (
+              <button
+                key={item.label}
+                className={`w-full flex items-center justify-between p-4 hover:bg-card-hover transition-colors ${
+                  index !== profileMenuItems.length - 1 ? "border-b border-border/50" : ""
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon size={20} className="text-muted-foreground" />
+                  <span>{item.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {item.count && (
+                    <span className="text-sm text-muted-foreground">{item.count}</span>
+                  )}
+                  <ChevronRight size={18} className="text-muted-foreground" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <BottomNavigation />
+      </div>
+    );
+  }
+
+  // Guest view with link account option
+  if (user && isGuest) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <header className="sticky top-0 z-40 glass-effect border-b border-border/50">
+          <div className="flex items-center justify-between px-4 py-3">
+            <h1 className="font-semibold text-lg">Профиль</h1>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut size={20} />
+            </Button>
+          </div>
+        </header>
+
+        <div className="p-4 space-y-6">
+          {/* Guest Info */}
+          <div className="flex items-center gap-4 p-4 bg-card rounded-2xl">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <UserCircle size={40} className="text-muted-foreground" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-lg">Гость</h2>
+              <p className="text-sm text-muted-foreground">Привяжите аккаунт для сохранения данных</p>
+            </div>
+          </div>
+
+          {/* Link Account Form */}
+          <div className="bg-card rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <LinkIcon size={20} className="text-primary" />
+              <h3 className="font-semibold">Привязать аккаунт</h3>
+            </div>
+            
+            <form onSubmit={handleLinkAccount} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="link-email">Email</Label>
+                <div className="relative">
+                  <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="link-email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="link-password">Пароль</Label>
+                <div className="relative">
+                  <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="link-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                    minLength={6}
+                  />
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Привязка..." : "Привязать аккаунт"}
+              </Button>
+            </form>
+          </div>
+
+          {/* Stats (same as logged in) */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-card rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-primary">0</p>
+              <p className="text-xs text-muted-foreground">Прочитано</p>
+            </div>
+            <div className="bg-card rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-primary">0</p>
+              <p className="text-xs text-muted-foreground">Глав</p>
+            </div>
+            <div className="bg-card rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-primary">0</p>
+              <p className="text-xs text-muted-foreground">Часов</p>
+            </div>
+          </div>
+        </div>
+
+        <BottomNavigation />
+      </div>
+    );
+  }
+
+  // Login view
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      <header className="sticky top-0 z-40 glass-effect border-b border-border/50">
+        <div className="px-4 py-3">
+          <h1 className="font-semibold text-lg">Профиль</h1>
+        </div>
+      </header>
+
+      <div className="p-4 space-y-6">
+        {/* Welcome */}
+        <div className="text-center py-8">
+          <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+            <UserIcon size={40} className="text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Добро пожаловать!</h2>
+          <p className="text-muted-foreground text-sm">
+            Войдите в аккаунт для синхронизации прогресса чтения
+          </p>
+        </div>
+
+        {/* Login Form */}
+        <div className="bg-card rounded-2xl p-5">
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Пароль</Label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Вход..." : "Войти"}
+            </Button>
+          </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-card px-2 text-muted-foreground">или</span>
+            </div>
+          </div>
+
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={handleGuestLogin}
+            disabled={isLoading}
+          >
+            <UserCircle size={18} className="mr-2" />
+            Войти как гость
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center mt-4">
+            Регистрация временно недоступна в тестовой версии
+          </p>
+        </div>
+      </div>
+
+      <BottomNavigation />
+    </div>
+  );
+};
+
+export default Profile;
