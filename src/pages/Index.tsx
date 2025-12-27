@@ -17,7 +17,6 @@ import book2 from "@/assets/covers/book-2.jpg";
 import book3 from "@/assets/covers/book-3.jpg";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("home");
   const [activeCategory, setActiveCategory] = useState("all");
 
   const featuredContent = {
@@ -98,7 +97,7 @@ const Index = () => {
       <ContentSection title="Топ фанфиков" items={topFanfics} />
 
       {/* Bottom Navigation */}
-      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNavigation />
     </div>
   );
 };
