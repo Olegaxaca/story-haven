@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, BookOpen, Bookmark, BookmarkCheck, Share2, Heart, Eye, Clock, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Star, BookOpen, Bookmark, BookmarkCheck, Share2, Heart, Eye, Clock, User as UserIcon, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -362,8 +362,12 @@ const ContentDetails = () => {
 
       {/* Read button */}
       <div className="px-4 pb-6">
-        <Button className="w-full gap-2" size="lg">
-          <BookOpen className="w-5 h-5" />
+        <Button 
+          className="w-full gap-2" 
+          size="lg"
+          onClick={() => navigate(`/read/${id}/1`)}
+        >
+          <Play className="w-5 h-5" />
           Начать читать
         </Button>
       </div>
