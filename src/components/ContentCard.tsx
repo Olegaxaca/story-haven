@@ -1,6 +1,8 @@
 import { Star, BookOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ContentCardProps {
+  id?: string;
   cover: string;
   title: string;
   author?: string;
@@ -13,6 +15,7 @@ interface ContentCardProps {
 }
 
 export const ContentCard = ({
+  id,
   cover,
   title,
   author,
@@ -23,6 +26,14 @@ export const ContentCard = ({
   isNew,
   isHot,
 }: ContentCardProps) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (id) {
+      navigate(`/content/${id}`);
+    }
+  };
+
   const typeColors = {
     book: "bg-books",
     manga: "bg-manga",
@@ -38,7 +49,7 @@ export const ContentCard = ({
   };
 
   return (
-    <div className="content-card group cursor-pointer">
+    <div className="content-card group cursor-pointer" onClick={handleClick}>
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl">
         <img
           src={cover}

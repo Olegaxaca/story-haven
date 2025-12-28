@@ -8,6 +8,7 @@ import Catalog from "./pages/Catalog";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
 import Bookmarks from "./pages/Bookmarks";
+import ContentDetails from "./pages/ContentDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/search" element={<Search />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
+          <Route path="/content/:id" element={<ContentDetails />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
