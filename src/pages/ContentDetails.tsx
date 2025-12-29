@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, BookOpen, Bookmark, BookmarkCheck, Share2, Heart, Eye, Clock, User as UserIcon, Play } from "lucide-react";
+import { ArrowLeft, Star, BookOpen, Bookmark, BookmarkCheck, Share2, Heart, Eye, Clock, User as UserIcon, Play, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -59,6 +59,9 @@ const ContentDetails = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [readChapters, setReadChapters] = useState<number[]>([]);
+  const [currentChapter, setCurrentChapter] = useState(1);
+  const [showAllChapters, setShowAllChapters] = useState(false);
 
   const content = id ? contentDatabase[id] : null;
 
@@ -79,8 +82,25 @@ const ContentDetails = () => {
   useEffect(() => {
     if (user && id) {
       checkBookmarkStatus();
+      fetchReadingProgress();
     }
   }, [user, id]);
+
+  const fetchReadingProgress = async () => {
+    if (!id || !user) return;
+    const { data } = await supabase
+      .from("reading_progress")
+      .select("chapter_number")
+      .eq("content_id", id)
+      .maybeSingle();
+    
+    if (data) {
+      setCurrentChapter(data.chapter_number);
+      // Mark all chapters up to current as read
+      const read = Array.from({ length: data.chapter_number }, (_, i) => i + 1);
+      setReadChapters(read);
+    }
+  };
 
   const checkBookmarkStatus = async () => {
     if (!id) return;
@@ -360,15 +380,85 @@ const ContentDetails = () => {
         </div>
       )}
 
+      {/* Chapter List */}
+      <div className="px-4 pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-foreground">
+            Главы ({content.chapters})
+          </h2>
+          {user && readChapters.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              Прочитано: {readChapters.length}/{content.chapters}
+            </span>
+          )}
+        </div>
+        
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          {Array.from({ length: showAllChapters ? content.chapters : Math.min(10, content.chapters) }, (_, i) => {
+            const chapterNum = i + 1;
+            const isRead = readChapters.includes(chapterNum);
+            const isCurrent = chapterNum === currentChapter && readChapters.length > 0;
+            
+            return (
+              <button
+                key={chapterNum}
+                onClick={() => navigate(`/read/${id}/${chapterNum}`)}
+                className={`w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors ${
+                  i !== (showAllChapters ? content.chapters : Math.min(10, content.chapters)) - 1 
+                    ? "border-b border-border/50" 
+                    : ""
+                } ${isCurrent ? "bg-primary/10" : ""}`}
+              >
+                <div className="flex items-center gap-3">
+                  {isRead ? (
+                    <CheckCircle2 size={18} className="text-primary flex-shrink-0" />
+                  ) : (
+                    <div className="w-[18px] h-[18px] rounded-full border-2 border-muted-foreground/30 flex-shrink-0" />
+                  )}
+                  <span className={`text-sm ${isRead ? "text-foreground" : "text-muted-foreground"}`}>
+                    Глава {chapterNum}
+                  </span>
+                  {isCurrent && (
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                      Текущая
+                    </span>
+                  )}
+                </div>
+                <Play size={14} className="text-muted-foreground" />
+              </button>
+            );
+          })}
+          
+          {content.chapters > 10 && (
+            <button
+              onClick={() => setShowAllChapters(!showAllChapters)}
+              className="w-full flex items-center justify-center gap-2 p-3 text-sm text-primary hover:bg-muted/50 transition-colors"
+            >
+              {showAllChapters ? (
+                <>
+                  <ChevronUp size={16} />
+                  Свернуть
+                </>
+              ) : (
+                <>
+                  <ChevronDown size={16} />
+                  Показать все ({content.chapters - 10} ещё)
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Read button */}
       <div className="px-4 pb-6">
         <Button 
           className="w-full gap-2" 
           size="lg"
-          onClick={() => navigate(`/read/${id}/1`)}
+          onClick={() => navigate(`/read/${id}/${currentChapter}`)}
         >
           <Play className="w-5 h-5" />
-          Начать читать
+          {readChapters.length > 0 ? `Продолжить (Гл. ${currentChapter})` : "Начать читать"}
         </Button>
       </div>
 
