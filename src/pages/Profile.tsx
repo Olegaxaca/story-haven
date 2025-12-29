@@ -16,7 +16,8 @@ import {
   Settings,
   ChevronRight,
   UserCircle,
-  Link as LinkIcon
+  Link as LinkIcon,
+  History
 } from "lucide-react";
 
 const Profile = () => {
@@ -142,10 +143,13 @@ const Profile = () => {
     }
   };
 
+  const navigate = (path: string) => window.location.href = path;
+
   const profileMenuItems = [
-    { icon: BookOpen, label: "Моя библиотека", count: 24 },
-    { icon: Heart, label: "Избранное", count: 12 },
-    { icon: Settings, label: "Настройки" },
+    { icon: BookOpen, label: "Моя библиотека", count: 24, path: "/bookmarks" },
+    { icon: History, label: "История чтения", path: "/history" },
+    { icon: Heart, label: "Избранное", count: 12, path: "/bookmarks" },
+    { icon: Settings, label: "Настройки", path: "/profile" },
   ];
 
   // Logged in view
@@ -194,6 +198,7 @@ const Profile = () => {
             {profileMenuItems.map((item, index) => (
               <button
                 key={item.label}
+                onClick={() => navigate(item.path)}
                 className={`w-full flex items-center justify-between p-4 hover:bg-card-hover transition-colors ${
                   index !== profileMenuItems.length - 1 ? "border-b border-border/50" : ""
                 }`}
