@@ -6,18 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
+import { ProfileEditSheet } from "@/components/profile/ProfileEditSheet";
+import { useProfile } from "@/hooks/useProfile";
+import { useReadingStats } from "@/hooks/useReadingStats";
 import { 
   User as UserIcon, 
   Mail, 
   Lock, 
-  LogOut, 
   BookOpen, 
   Heart, 
   Settings,
   ChevronRight,
   UserCircle,
   Link as LinkIcon,
-  History
+  History,
+  Crown
 } from "lucide-react";
 
 const Profile = () => {
@@ -27,7 +32,11 @@ const Profile = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isGuest, setIsGuest] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
   const { toast } = useToast();
+
+  const { profile, refetch: refetchProfile } = useProfile(user?.id);
+  const { stats } = useReadingStats(user?.id);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -146,49 +155,66 @@ const Profile = () => {
   const navigate = (path: string) => window.location.href = path;
 
   const profileMenuItems = [
-    { icon: BookOpen, label: "Моя библиотека", count: 24, path: "/bookmarks" },
+    { icon: BookOpen, label: "Моя библиотека", count: stats.booksRead, path: "/bookmarks" },
     { icon: History, label: "История чтения", path: "/history" },
-    { icon: Heart, label: "Избранное", count: 12, path: "/bookmarks" },
-    { icon: Settings, label: "Настройки", path: "/profile" },
+    { icon: Heart, label: "Избранное", path: "/bookmarks" },
+    { icon: Settings, label: "Настройки", onClick: () => setEditSheetOpen(true) },
   ];
+
+  const displayName = profile?.display_name || user?.email?.split("@")[0] || "Пользователь";
+  const memberSince = user?.created_at 
+    ? new Date(user.created_at).toLocaleDateString("ru-RU", { month: "long", year: "numeric" })
+    : null;
 
   // Logged in view
   if (user && !isGuest) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <header className="sticky top-0 z-40 glass-effect border-b border-border/50">
-          <div className="flex items-center justify-between px-4 py-3">
-            <h1 className="font-semibold text-lg">Профиль</h1>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut size={20} />
-            </Button>
-          </div>
-        </header>
+        <ProfileHeader 
+          title="Профиль" 
+          onLogout={handleLogout}
+          onEdit={() => setEditSheetOpen(true)}
+          showEdit
+        />
 
         <div className="p-4 space-y-6">
-          {/* User Info */}
-          <div className="flex items-center gap-4 p-4 bg-card rounded-2xl">
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-              <UserCircle size={40} className="text-primary" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-lg">{user.email}</h2>
-              <p className="text-sm text-muted-foreground">Читатель</p>
+          {/* User Info Card */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-card to-card p-5">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+            
+            <div className="relative flex items-center gap-4">
+              <ProfileAvatar 
+                avatarUrl={profile?.avatar_url}
+                displayName={displayName}
+                size="lg"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-xl truncate">{displayName}</h2>
+                  <Crown size={18} className="text-primary flex-shrink-0" />
+                </div>
+                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                {memberSince && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    С нами с {memberSince}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-card rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-primary">24</p>
+              <p className="text-2xl font-bold text-primary">{stats.booksRead}</p>
               <p className="text-xs text-muted-foreground">Прочитано</p>
             </div>
             <div className="bg-card rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-primary">156</p>
+              <p className="text-2xl font-bold text-primary">{stats.chaptersRead}</p>
               <p className="text-xs text-muted-foreground">Глав</p>
             </div>
             <div className="bg-card rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-primary">42</p>
+              <p className="text-2xl font-bold text-primary">{stats.hoursRead}</p>
               <p className="text-xs text-muted-foreground">Часов</p>
             </div>
           </div>
@@ -198,17 +224,19 @@ const Profile = () => {
             {profileMenuItems.map((item, index) => (
               <button
                 key={item.label}
-                onClick={() => navigate(item.path)}
+                onClick={() => item.onClick ? item.onClick() : item.path && navigate(item.path)}
                 className={`w-full flex items-center justify-between p-4 hover:bg-card-hover transition-colors ${
                   index !== profileMenuItems.length - 1 ? "border-b border-border/50" : ""
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <item.icon size={20} className="text-muted-foreground" />
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <item.icon size={20} className="text-primary" />
+                  </div>
                   <span>{item.label}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {item.count && (
+                  {item.count !== undefined && (
                     <span className="text-sm text-muted-foreground">{item.count}</span>
                   )}
                   <ChevronRight size={18} className="text-muted-foreground" />
@@ -217,6 +245,14 @@ const Profile = () => {
             ))}
           </div>
         </div>
+
+        <ProfileEditSheet
+          open={editSheetOpen}
+          onOpenChange={setEditSheetOpen}
+          userId={user.id}
+          userEmail={user.email || ""}
+          onProfileUpdate={refetchProfile}
+        />
 
         <BottomNavigation />
       </div>
@@ -227,14 +263,7 @@ const Profile = () => {
   if (user && isGuest) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <header className="sticky top-0 z-40 glass-effect border-b border-border/50">
-          <div className="flex items-center justify-between px-4 py-3">
-            <h1 className="font-semibold text-lg">Профиль</h1>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut size={20} />
-            </Button>
-          </div>
-        </header>
+        <ProfileHeader title="Профиль" onLogout={handleLogout} />
 
         <div className="p-4 space-y-6">
           {/* Guest Info */}
@@ -295,18 +324,18 @@ const Profile = () => {
             </form>
           </div>
 
-          {/* Stats (same as logged in) */}
+          {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-card rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-primary">0</p>
+              <p className="text-2xl font-bold text-primary">{stats.booksRead}</p>
               <p className="text-xs text-muted-foreground">Прочитано</p>
             </div>
             <div className="bg-card rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-primary">0</p>
+              <p className="text-2xl font-bold text-primary">{stats.chaptersRead}</p>
               <p className="text-xs text-muted-foreground">Глав</p>
             </div>
             <div className="bg-card rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-primary">0</p>
+              <p className="text-2xl font-bold text-primary">{stats.hoursRead}</p>
               <p className="text-xs text-muted-foreground">Часов</p>
             </div>
           </div>
