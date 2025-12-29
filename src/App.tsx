@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Bookmarks from "./pages/Bookmarks";
 import ContentDetails from "./pages/ContentDetails";
 import Reader from "./pages/Reader";
+import ReadingHistory from "./pages/ReadingHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/search" element={<Search />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
+          <Route path="/history" element={<ReadingHistory />} />
           <Route path="/content/:id" element={<ContentDetails />} />
           <Route path="/read/:id/:chapter" element={<Reader />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
