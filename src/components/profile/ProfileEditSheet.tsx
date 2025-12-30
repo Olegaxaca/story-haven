@@ -93,12 +93,44 @@ export const ProfileEditSheet = ({
     }
   };
 
+  const uploadAvatar = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/avatar.${fileExt}`;
+    
+    // Delete existing avatar if present
+    await supabase.storage
+      .from('avatars')
+      .remove([`${userId}/avatar.jpg`, `${userId}/avatar.png`, `${userId}/avatar.webp`, `${userId}/avatar.jpeg`]);
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  };
+
   const handleSave = async () => {
     setIsLoading(true);
 
     try {
+      let avatarUrl = profile.avatar_url;
+
+      // Handle avatar upload if changed
+      if (avatarFile) {
+        avatarUrl = await uploadAvatar(avatarFile);
+      }
+
       const updateData: Partial<ProfileData> = {
         display_name: profile.display_name,
+        avatar_url: avatarUrl,
         font_size: profile.font_size,
         reading_direction: profile.reading_direction,
         theme: profile.theme,
@@ -107,22 +139,16 @@ export const ProfileEditSheet = ({
         new_chapters_alert: profile.new_chapters_alert,
       };
 
-      // Handle avatar upload if changed
-      if (avatarFile) {
-        // For now, we'll skip actual file upload since storage isn't set up
-        // In production, you'd upload to Supabase Storage here
-        toast({
-          title: "Аватар",
-          description: "Загрузка аватаров будет доступна в следующем обновлении",
-        });
-      }
-
       const { error } = await supabase
         .from("profiles")
         .update(updateData)
         .eq("user_id", userId);
 
       if (error) throw error;
+
+      // Update local state with new avatar URL
+      setProfile(prev => ({ ...prev, avatar_url: avatarUrl }));
+      setAvatarFile(null);
 
       toast({
         title: "Профиль обновлен",
