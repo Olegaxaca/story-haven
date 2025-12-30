@@ -52,6 +52,7 @@ export type Database = {
           content_id: string
           created_at: string
           id: string
+          parent_id: string | null
           text: string
           user_id: string
         }
@@ -59,6 +60,7 @@ export type Database = {
           content_id: string
           created_at?: string
           id?: string
+          parent_id?: string | null
           text: string
           user_id: string
         }
@@ -66,10 +68,19 @@ export type Database = {
           content_id?: string
           created_at?: string
           id?: string
+          parent_id?: string | null
           text?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
