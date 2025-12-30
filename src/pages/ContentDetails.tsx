@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { Comments } from "@/components/Comments";
 import { useToast } from "@/hooks/use-toast";
 
 import featuredCover from "@/assets/covers/featured-1.jpg";
@@ -461,6 +462,9 @@ const ContentDetails = () => {
           {readChapters.length > 0 ? `Продолжить (Гл. ${currentChapter})` : "Начать читать"}
         </Button>
       </div>
+
+      {/* Comments section */}
+      <Comments contentId={id} />
 
       <BottomNavigation />
     </div>
