@@ -116,6 +116,8 @@ export const Comments = ({ contentId }: CommentsProps) => {
     setIsLoading(false);
   };
 
+  const MAX_COMMENT_LENGTH = 5000;
+
   const handleSubmit = async () => {
     if (!user) {
       toast({
@@ -126,10 +128,21 @@ export const Comments = ({ contentId }: CommentsProps) => {
       return;
     }
 
-    if (!newComment.trim()) {
+    const trimmedComment = newComment.trim();
+
+    if (!trimmedComment) {
       toast({
         title: "Пустой комментарий",
         description: "Напишите что-нибудь перед отправкой",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (trimmedComment.length > MAX_COMMENT_LENGTH) {
+      toast({
+        title: "Комментарий слишком длинный",
+        description: `Максимум ${MAX_COMMENT_LENGTH} символов`,
         variant: "destructive",
       });
       return;
@@ -142,7 +155,7 @@ export const Comments = ({ contentId }: CommentsProps) => {
       .insert({
         content_id: contentId,
         user_id: user.id,
-        text: newComment.trim(),
+        text: trimmedComment,
         parent_id: null,
       });
 
@@ -167,10 +180,21 @@ export const Comments = ({ contentId }: CommentsProps) => {
   const handleReply = async () => {
     if (!user || !replyTo) return;
 
-    if (!replyText.trim()) {
+    const trimmedReply = replyText.trim();
+
+    if (!trimmedReply) {
       toast({
         title: "Пустой ответ",
         description: "Напишите что-нибудь перед отправкой",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (trimmedReply.length > MAX_COMMENT_LENGTH) {
+      toast({
+        title: "Ответ слишком длинный",
+        description: `Максимум ${MAX_COMMENT_LENGTH} символов`,
         variant: "destructive",
       });
       return;
@@ -183,7 +207,7 @@ export const Comments = ({ contentId }: CommentsProps) => {
       .insert({
         content_id: contentId,
         user_id: user.id,
-        text: replyText.trim(),
+        text: trimmedReply,
         parent_id: replyTo.id,
       });
 
@@ -304,14 +328,20 @@ export const Comments = ({ contentId }: CommentsProps) => {
             placeholder={`Ответить ${comment.profile?.display_name || "пользователю"}...`}
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
-            className="mb-2 resize-none text-sm"
+            className="mb-1 resize-none text-sm"
             rows={2}
             autoFocus
+            maxLength={MAX_COMMENT_LENGTH}
           />
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-xs ${replyText.length > MAX_COMMENT_LENGTH * 0.9 ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {replyText.length}/{MAX_COMMENT_LENGTH}
+            </span>
+          </div>
           <div className="flex gap-2">
             <Button
               onClick={handleReply}
-              disabled={isSubmitting || !replyText.trim()}
+              disabled={isSubmitting || !replyText.trim() || replyText.trim().length > MAX_COMMENT_LENGTH}
               size="sm"
               className="gap-1"
             >
@@ -378,12 +408,18 @@ export const Comments = ({ contentId }: CommentsProps) => {
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           disabled={!user}
-          className="mb-2 resize-none"
+          className="mb-1 resize-none"
           rows={3}
+          maxLength={MAX_COMMENT_LENGTH}
         />
+        <div className="flex items-center justify-between mb-2">
+          <span className={`text-xs ${newComment.length > MAX_COMMENT_LENGTH * 0.9 ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {newComment.length}/{MAX_COMMENT_LENGTH}
+          </span>
+        </div>
         <Button
           onClick={handleSubmit}
-          disabled={!user || isSubmitting || !newComment.trim()}
+          disabled={!user || isSubmitting || !newComment.trim() || newComment.trim().length > MAX_COMMENT_LENGTH}
           className="w-full gap-2"
         >
           <Send className="w-4 h-4" />
