@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, Send, Trash2, User as UserIcon, Reply, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageCircle, Send, Trash2, User as UserIcon, Reply, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { User } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
+import { useRateLimit, formatCooldown } from "@/hooks/useRateLimit";
 
 interface Comment {
   id: string;
@@ -36,6 +37,13 @@ export const Comments = ({ contentId }: CommentsProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  
+  // Rate limiting: 5 comments per 2 minutes, 60 second cooldown when exceeded
+  const rateLimit = useRateLimit({
+    maxAttempts: 5,
+    windowMs: 2 * 60 * 1000, // 2 minutes
+    cooldownMs: 60 * 1000, // 60 second cooldown
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -128,6 +136,17 @@ export const Comments = ({ contentId }: CommentsProps) => {
       return;
     }
 
+    // Check rate limit
+    const { allowed, waitTime } = rateLimit.checkRateLimit();
+    if (!allowed) {
+      toast({
+        title: "Слишком много комментариев",
+        description: `Подождите ${formatCooldown(waitTime)} перед отправкой`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const trimmedComment = newComment.trim();
 
     if (!trimmedComment) {
@@ -166,6 +185,8 @@ export const Comments = ({ contentId }: CommentsProps) => {
         variant: "destructive",
       });
     } else {
+      // Record successful attempt for rate limiting
+      rateLimit.recordAttempt();
       setNewComment("");
       fetchComments();
       toast({
@@ -179,6 +200,17 @@ export const Comments = ({ contentId }: CommentsProps) => {
 
   const handleReply = async () => {
     if (!user || !replyTo) return;
+
+    // Check rate limit
+    const { allowed, waitTime } = rateLimit.checkRateLimit();
+    if (!allowed) {
+      toast({
+        title: "Слишком много комментариев",
+        description: `Подождите ${formatCooldown(waitTime)} перед отправкой`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     const trimmedReply = replyText.trim();
 
@@ -218,6 +250,8 @@ export const Comments = ({ contentId }: CommentsProps) => {
         variant: "destructive",
       });
     } else {
+      // Record successful attempt for rate limiting
+      rateLimit.recordAttempt();
       setReplyText("");
       setReplyTo(null);
       // Expand replies for this comment
@@ -337,16 +371,22 @@ export const Comments = ({ contentId }: CommentsProps) => {
             <span className={`text-xs ${replyText.length > MAX_COMMENT_LENGTH * 0.9 ? 'text-destructive' : 'text-muted-foreground'}`}>
               {replyText.length}/{MAX_COMMENT_LENGTH}
             </span>
+            {rateLimit.isInCooldown && (
+              <span className="text-xs text-destructive flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatCooldown(rateLimit.cooldownRemaining)}
+              </span>
+            )}
           </div>
           <div className="flex gap-2">
             <Button
               onClick={handleReply}
-              disabled={isSubmitting || !replyText.trim() || replyText.trim().length > MAX_COMMENT_LENGTH}
+              disabled={isSubmitting || !replyText.trim() || replyText.trim().length > MAX_COMMENT_LENGTH || rateLimit.isInCooldown}
               size="sm"
               className="gap-1"
             >
               <Send className="w-3 h-3" />
-              Отправить
+              {rateLimit.isInCooldown ? formatCooldown(rateLimit.cooldownRemaining) : "Отправить"}
             </Button>
             <Button
               onClick={() => {
@@ -416,14 +456,20 @@ export const Comments = ({ contentId }: CommentsProps) => {
           <span className={`text-xs ${newComment.length > MAX_COMMENT_LENGTH * 0.9 ? 'text-destructive' : 'text-muted-foreground'}`}>
             {newComment.length}/{MAX_COMMENT_LENGTH}
           </span>
+          {rateLimit.isInCooldown && (
+            <span className="text-xs text-destructive flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Подождите {formatCooldown(rateLimit.cooldownRemaining)}
+            </span>
+          )}
         </div>
         <Button
           onClick={handleSubmit}
-          disabled={!user || isSubmitting || !newComment.trim() || newComment.trim().length > MAX_COMMENT_LENGTH}
+          disabled={!user || isSubmitting || !newComment.trim() || newComment.trim().length > MAX_COMMENT_LENGTH || rateLimit.isInCooldown}
           className="w-full gap-2"
         >
           <Send className="w-4 h-4" />
-          Отправить
+          {rateLimit.isInCooldown ? `Подождите ${formatCooldown(rateLimit.cooldownRemaining)}` : "Отправить"}
         </Button>
       </div>
 
