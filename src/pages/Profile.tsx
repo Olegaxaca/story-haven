@@ -22,8 +22,10 @@ import {
   UserCircle,
   Link as LinkIcon,
   History,
-  Crown
+  Crown,
+  Palette
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Profile = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -90,18 +92,28 @@ const Profile = () => {
   const handleGuestLogin = async () => {
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInAnonymously();
+    try {
+      const { error } = await supabase.auth.signInAnonymously();
 
-    if (error) {
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Ошибка",
+          description: error.message.includes("Anonymous sign-ins are disabled")
+            ? "Гостевой вход временно недоступен"
+            : "Не удалось войти как гость. Попробуйте позже.",
+        });
+      } else {
+        toast({
+          title: "Гостевой вход",
+          description: "Вы вошли как гость. Позже вы сможете привязать аккаунт.",
+        });
+      }
+    } catch (err) {
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось войти как гость",
-      });
-    } else {
-      toast({
-        title: "Гостевой вход",
-        description: "Вы вошли как гость. Позже вы сможете привязать аккаунт.",
+        title: "Ошибка подключения",
+        description: "Сервер временно недоступен. Попробуйте позже.",
       });
     }
 
@@ -217,6 +229,11 @@ const Profile = () => {
               <p className="text-2xl font-bold text-primary">{stats.hoursRead}</p>
               <p className="text-xs text-muted-foreground">Часов</p>
             </div>
+          </div>
+
+          {/* Theme Toggle */}
+          <div className="bg-card rounded-2xl p-4">
+            <ThemeToggle />
           </div>
 
           {/* Menu */}
