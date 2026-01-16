@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, Send, Trash2, User as UserIcon, Reply, ChevronDown, ChevronUp, Clock, Pencil, X } from "lucide-react";
+import { MessageCircle, Send, Trash2, User as UserIcon, Reply, ChevronDown, ChevronUp, Clock, Pencil, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,12 +15,15 @@ interface Comment {
   user_id: string;
   text: string;
   created_at: string;
+  updated_at?: string | null;
   parent_id: string | null;
   profile?: {
     display_name: string | null;
     avatar_url: string | null;
   };
   replies?: Comment[];
+  likesCount?: number;
+  isLikedByUser?: boolean;
 }
 
 interface CommentsProps {
@@ -82,16 +85,38 @@ export const Comments = ({ contentId }: CommentsProps) => {
 
     if (commentsData && commentsData.length > 0) {
       const userIds = [...new Set(commentsData.map(c => c.user_id))];
+      const commentIds = commentsData.map(c => c.id);
+      
+      // Fetch profiles
       const { data: profiles } = await supabase
         .from("public_profiles")
         .select("user_id, display_name, avatar_url")
         .in("user_id", userIds);
 
+      // Fetch all likes for these comments
+      const { data: allLikes } = await supabase
+        .from("comment_likes")
+        .select("comment_id, user_id")
+        .in("comment_id", commentIds);
+
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      
+      // Count likes per comment and check if current user liked
+      const likesCountMap = new Map<string, number>();
+      const userLikesSet = new Set<string>();
+      
+      allLikes?.forEach(like => {
+        likesCountMap.set(like.comment_id, (likesCountMap.get(like.comment_id) || 0) + 1);
+        if (user && like.user_id === user.id) {
+          userLikesSet.add(like.comment_id);
+        }
+      });
       
       const commentsWithProfiles = commentsData.map(comment => ({
         ...comment,
         profile: profileMap.get(comment.user_id) || null,
+        likesCount: likesCountMap.get(comment.id) || 0,
+        isLikedByUser: userLikesSet.has(comment.id),
       }));
 
       // Organize into threaded structure
@@ -363,6 +388,64 @@ export const Comments = ({ contentId }: CommentsProps) => {
     });
   };
 
+  const handleLike = async (commentId: string, isCurrentlyLiked: boolean) => {
+    if (!user) {
+      toast({
+        title: "Требуется вход",
+        description: "Войдите в аккаунт, чтобы ставить лайки",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isCurrentlyLiked) {
+      const { error } = await supabase
+        .from("comment_likes")
+        .delete()
+        .eq("comment_id", commentId)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error removing like:", error);
+        return;
+      }
+    } else {
+      const { error } = await supabase
+        .from("comment_likes")
+        .insert({ comment_id: commentId, user_id: user.id });
+
+      if (error) {
+        console.error("Error adding like:", error);
+        return;
+      }
+    }
+
+    // Optimistically update UI
+    const updateCommentLikes = (comments: Comment[]): Comment[] => {
+      return comments.map(c => {
+        const updated = { ...c };
+        if (c.id === commentId) {
+          updated.isLikedByUser = !isCurrentlyLiked;
+          updated.likesCount = (c.likesCount || 0) + (isCurrentlyLiked ? -1 : 1);
+        }
+        if (c.replies) {
+          updated.replies = updateCommentLikes(c.replies);
+        }
+        return updated;
+      });
+    };
+
+    setComments(updateCommentLikes(comments));
+  };
+
+  const isEdited = (comment: Comment) => {
+    if (!comment.updated_at || !comment.created_at) return false;
+    const created = new Date(comment.created_at).getTime();
+    const updated = new Date(comment.updated_at).getTime();
+    // Consider edited if updated more than 1 second after creation
+    return updated - created > 1000;
+  };
+
   const totalComments = comments.reduce((acc, c) => acc + 1 + (c.replies?.length || 0), 0);
 
   const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => {
@@ -384,9 +467,14 @@ export const Comments = ({ contentId }: CommentsProps) => {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2 mb-1">
-              <span className={`font-medium text-foreground truncate ${isReply ? "text-sm" : ""}`}>
-                {comment.profile?.display_name || "Пользователь"}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`font-medium text-foreground truncate ${isReply ? "text-sm" : ""}`}>
+                  {comment.profile?.display_name || "Пользователь"}
+                </span>
+                {isEdited(comment) && (
+                  <span className="text-xs text-muted-foreground italic">(ред.)</span>
+                )}
+              </div>
               <span className="text-xs text-muted-foreground flex-shrink-0">
                 {formatDistanceToNow(new Date(comment.created_at), {
                   addSuffix: true,
@@ -435,20 +523,35 @@ export const Comments = ({ contentId }: CommentsProps) => {
                   {comment.text}
                 </p>
                 
-                {/* Reply button for top-level comments only */}
-                {!isReply && user && (
+                {/* Actions row: like and reply */}
+                <div className="mt-2 flex items-center gap-3">
                   <button
-                    onClick={() => {
-                      setReplyTo(comment);
-                      setReplyText("");
-                      cancelEditing();
-                    }}
-                    className="mt-2 text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                    onClick={() => handleLike(comment.id, comment.isLikedByUser || false)}
+                    className={`text-xs flex items-center gap-1 transition-colors ${
+                      comment.isLikedByUser 
+                        ? "text-destructive" 
+                        : "text-muted-foreground hover:text-destructive"
+                    }`}
                   >
-                    <Reply className="w-3 h-3" />
-                    Ответить
+                    <Heart className={`w-3.5 h-3.5 ${comment.isLikedByUser ? "fill-current" : ""}`} />
+                    {(comment.likesCount || 0) > 0 && <span>{comment.likesCount}</span>}
                   </button>
-                )}
+                  
+                  {/* Reply button for top-level comments only */}
+                  {!isReply && user && (
+                    <button
+                      onClick={() => {
+                        setReplyTo(comment);
+                        setReplyText("");
+                        cancelEditing();
+                      }}
+                      className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                    >
+                      <Reply className="w-3 h-3" />
+                      Ответить
+                    </button>
+                  )}
+                </div>
               </>
             )}
           </div>

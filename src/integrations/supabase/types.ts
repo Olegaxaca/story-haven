@@ -47,6 +47,35 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content_id: string
@@ -54,6 +83,7 @@ export type Database = {
           id: string
           parent_id: string | null
           text: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
@@ -62,6 +92,7 @@ export type Database = {
           id?: string
           parent_id?: string | null
           text: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
@@ -70,6 +101,7 @@ export type Database = {
           id?: string
           parent_id?: string | null
           text?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
