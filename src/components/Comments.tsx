@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, Send, Trash2, User as UserIcon, Reply, ChevronDown, ChevronUp, Clock, Pencil, Heart } from "lucide-react";
+import { MessageCircle, Send, Trash2, User as UserIcon, Reply, ChevronDown, ChevronUp, Clock, Pencil, Heart, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,8 @@ interface CommentsProps {
   contentId: string;
 }
 
+type SortOption = "newest" | "oldest" | "most_liked";
+
 export const Comments = ({ contentId }: CommentsProps) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
@@ -42,6 +44,7 @@ export const Comments = ({ contentId }: CommentsProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
   
   // Rate limiting: 5 comments per 2 minutes, 60 second cooldown when exceeded
   const rateLimit = useRateLimit({
@@ -64,9 +67,23 @@ export const Comments = ({ contentId }: CommentsProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const sortComments = (list: Comment[], sort: SortOption) => {
+    switch (sort) {
+      case "newest":
+        list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case "oldest":
+        list.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case "most_liked":
+        list.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
+        break;
+    }
+  };
+
   useEffect(() => {
     fetchComments();
-  }, [contentId]);
+  }, [contentId, sortBy]);
 
   const fetchComments = async () => {
     setIsLoading(true);
@@ -142,6 +159,9 @@ export const Comments = ({ contentId }: CommentsProps) => {
       topLevelComments.forEach(comment => {
         comment.replies = repliesMap.get(comment.id) || [];
       });
+
+      // Sort top-level comments based on sortBy
+      sortComments(topLevelComments, sortBy);
 
       setComments(topLevelComments);
     } else {
@@ -657,12 +677,30 @@ export const Comments = ({ contentId }: CommentsProps) => {
 
   return (
     <div className="px-4 py-4">
-      <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-        <MessageCircle className="w-5 h-5" />
-        Комментарии ({totalComments})
-      </h2>
-
-      {/* New comment form */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <MessageCircle className="w-5 h-5" />
+          Комментарии ({totalComments})
+        </h2>
+        {totalComments > 0 && (
+          <div className="flex items-center gap-1.5">
+            <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+            {(["newest", "oldest", "most_liked"] as SortOption[]).map((option) => (
+              <button
+                key={option}
+                onClick={() => setSortBy(option)}
+                className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                  sortBy === option
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {option === "newest" ? "Новые" : option === "oldest" ? "Старые" : "Популярные"}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="mb-6">
         <Textarea
           placeholder={user ? "Напишите комментарий..." : "Войдите, чтобы оставить комментарий"}
