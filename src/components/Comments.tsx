@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, Send, Trash2, User as UserIcon, Reply, ChevronDown, ChevronUp, Clock, Pencil, Heart, ArrowUpDown } from "lucide-react";
+import { MessageCircle, Send, Trash2, User as UserIcon, Reply, ChevronDown, ChevronUp, Clock, Pencil, Heart, ArrowUpDown, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +45,7 @@ export const Comments = ({ contentId }: CommentsProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [showRules, setShowRules] = useState(false);
   
   // Rate limiting: 5 comments per 2 minutes, 60 second cooldown when exceeded
   const rateLimit = useRateLimit({
@@ -698,6 +699,55 @@ export const Comments = ({ contentId }: CommentsProps) => {
                 {option === "newest" ? "Новые" : option === "oldest" ? "Старые" : "Популярные"}
               </button>
             ))}
+          </div>
+        )}
+      </div>
+      {/* Comment Rules */}
+      <div className="mb-4">
+        <button
+          onClick={() => setShowRules(!showRules)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+        >
+          <ShieldCheck className="w-4 h-4 text-primary" />
+          <span className="font-medium">Правила комментариев</span>
+          {showRules ? <ChevronUp className="w-3.5 h-3.5 ml-auto" /> : <ChevronDown className="w-3.5 h-3.5 ml-auto" />}
+        </button>
+        {showRules && (
+          <div className="mt-3 p-4 bg-muted/50 rounded-lg border border-border text-sm space-y-3">
+            <p className="text-muted-foreground">
+              Добро пожаловать в обсуждения! Чтобы всем было комфортно, просим соблюдать простые правила:
+            </p>
+            <div className="space-y-2.5">
+              <div>
+                <p className="font-medium text-foreground">1. Уважение к другим</p>
+                <p className="text-muted-foreground">Оскорбления, травля, унижение и высмеивание авторов, переводчиков и читателей запрещены.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">2. Конструктивная критика</p>
+                <p className="text-muted-foreground">Критиковать произведение можно, переходить на личности — нельзя.</p>
+                <p className="text-muted-foreground text-xs mt-0.5">✅ «Мне не понравилось, потому что...» · ❌ «Автор — бездарность»</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">3. Без спойлеров без предупреждения</p>
+                <p className="text-muted-foreground">Если раскрываете сюжет, укажите ⚠️ СПОЙЛЕР в начале комментария.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">4. Запрещённый контент</p>
+                <p className="text-muted-foreground">Разжигание ненависти, дискриминация, NSFW-контент, экстремизм, призывы к насилию, незаконные материалы.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">5. Без спама и рекламы</p>
+                <p className="text-muted-foreground">Ссылки на сторонние сайты, реклама и продвижение личных проектов запрещены без согласования.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">6. Язык общения</p>
+                <p className="text-muted-foreground">Разные языки допустимы, но текст должен быть понятным и без намеренного искажения (капс-спам, флуд).</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">7. Модерация</p>
+                <p className="text-muted-foreground">Администрация оставляет за собой право удалять комментарии, ограничивать доступ и блокировать аккаунты при систематических нарушениях.</p>
+              </div>
+            </div>
           </div>
         )}
       </div>
