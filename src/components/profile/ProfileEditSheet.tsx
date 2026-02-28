@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileAvatar } from "./ProfileAvatar";
-import { User, Palette, Bell, Type, ArrowLeft, ArrowRight } from "lucide-react";
+import { User, Palette, Bell, Type, ArrowLeft, ArrowRight, Settings, ShieldCheck, Globe, HelpCircle, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -176,18 +176,22 @@ export const ProfileEditSheet = ({
         </SheetHeader>
 
         <Tabs defaultValue="profile" className="h-[calc(100%-80px)]">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="profile" className="gap-2">
-              <User size={16} />
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="profile" className="gap-1 text-xs px-1">
+              <User size={14} />
               <span className="hidden sm:inline">Профиль</span>
             </TabsTrigger>
-            <TabsTrigger value="reading" className="gap-2">
-              <Type size={16} />
+            <TabsTrigger value="reading" className="gap-1 text-xs px-1">
+              <Type size={14} />
               <span className="hidden sm:inline">Чтение</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2">
-              <Bell size={16} />
+            <TabsTrigger value="notifications" className="gap-1 text-xs px-1">
+              <Bell size={14} />
               <span className="hidden sm:inline">Уведомления</span>
+            </TabsTrigger>
+            <TabsTrigger value="more" className="gap-1 text-xs px-1">
+              <Settings size={14} />
+              <span className="hidden sm:inline">Ещё</span>
             </TabsTrigger>
           </TabsList>
 
@@ -354,6 +358,33 @@ export const ProfileEditSheet = ({
                     }
                   />
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="more" className="space-y-3 mt-0">
+              {[
+                { icon: User, label: "Аккаунт", key: "account" },
+                { icon: ShieldCheck, label: "Конфиденциальность", key: "privacy" },
+                { icon: Globe, label: "Язык приложения", key: "language" },
+                { icon: HelpCircle, label: "Помощь", key: "help" },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  className="w-full flex items-center justify-between p-4 bg-card rounded-xl hover:bg-card-hover transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <item.icon size={20} className="text-primary" />
+                    </div>
+                    <span className="font-medium">{item.label}</span>
+                  </div>
+                  <ChevronRight size={18} className="text-muted-foreground" />
+                </button>
+              ))}
+              <div className="text-center pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Эти разделы находятся в разработке и будут доступны в ближайшем обновлении.
+                </p>
               </div>
             </TabsContent>
           </div>
