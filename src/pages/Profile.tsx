@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { ProfileEditSheet } from "@/components/profile/ProfileEditSheet";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
 import { useProfile } from "@/hooks/useProfile";
 import { useReadingStats } from "@/hooks/useReadingStats";
 import { 
@@ -26,7 +26,6 @@ import {
   Crown,
   Palette,
   ShieldCheck,
-  UserPlus,
   Globe,
   HelpCircle
 } from "lucide-react";
@@ -40,7 +39,7 @@ const Profile = () => {
   const [password, setPassword] = useState("");
   const [isGuest, setIsGuest] = useState(false);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
-  const [activeSettingsSection, setActiveSettingsSection] = useState<string | null>(null);
+  
   const { toast } = useToast();
 
   const { profile, refetch: refetchProfile } = useProfile(user?.id);
@@ -179,13 +178,6 @@ const Profile = () => {
     { icon: Settings, label: "Настройки", onClick: () => setEditSheetOpen(true) },
   ];
 
-  const settingsMenuItems = [
-    { icon: UserIcon, label: "Аккаунт", key: "account" },
-    { icon: UserPlus, label: "Регистрация", key: "registration" },
-    { icon: ShieldCheck, label: "Конфиденциальность", key: "privacy" },
-    { icon: Globe, label: "Язык приложения", key: "language" },
-    { icon: HelpCircle, label: "Помощь", key: "help" },
-  ];
 
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "Пользователь";
   const memberSince = user?.created_at 
@@ -275,53 +267,8 @@ const Profile = () => {
               </button>
             ))}
           </div>
-          {/* Settings Sections */}
-          <div className="bg-card rounded-2xl overflow-hidden">
-            <div className="px-4 pt-3 pb-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Настройки</p>
-            </div>
-            {settingsMenuItems.map((item, index) => (
-              <button
-                key={item.key}
-                onClick={() => setActiveSettingsSection(item.key)}
-                className={`w-full flex items-center justify-between p-4 hover:bg-card-hover transition-colors ${
-                  index !== settingsMenuItems.length - 1 ? "border-b border-border/50" : ""
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <item.icon size={20} className="text-primary" />
-                  </div>
-                  <span>{item.label}</span>
-                </div>
-                <ChevronRight size={18} className="text-muted-foreground" />
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Settings Section Sheet */}
-        <Sheet open={!!activeSettingsSection} onOpenChange={(open) => !open && setActiveSettingsSection(null)}>
-          <SheetContent side="bottom" className="h-[60vh] rounded-t-3xl">
-            <SheetHeader className="pb-4">
-              <SheetTitle>
-                {settingsMenuItems.find(i => i.key === activeSettingsSection)?.label}
-              </SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-col items-center justify-center h-[calc(100%-100px)] text-center px-6">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                {activeSettingsSection && (() => {
-                  const Icon = settingsMenuItems.find(i => i.key === activeSettingsSection)?.icon;
-                  return Icon ? <Icon size={32} className="text-primary" /> : null;
-                })()}
-              </div>
-              <p className="text-lg font-semibold mb-2">Скоро будет доступно</p>
-              <p className="text-sm text-muted-foreground">
-                Этот раздел находится в разработке и будет доступен в ближайшем обновлении.
-              </p>
-            </div>
-          </SheetContent>
-        </Sheet>
 
         <ProfileEditSheet
           open={editSheetOpen}
